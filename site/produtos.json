@@ -42,5 +42,16 @@
     "estoque": "3",
     "descricao": "Fone de Ouvido Sem Fio Gold FN-BT43 Branco reúne praticidade e estilo em um formato in-ear pensado para o uso diário. A conexão Bluetooth e a tecnologia TWS favorecem uma escuta estável, sem cabos, enquanto o microfone integrado e o modo mãos livres facilitam chamadas e comandos com mais agilidade. O acabamento branco com detalhes em cinza oferece um visual discreto e moderno.\n\n\n\nO estojo de carregamento ajuda a manter o fone protegido e pronto para acompanhar a rotina, seja em casa, no trabalho ou nos deslocamentos. O cancelamento de ruído contribui para uma audição mais imersiva, reduzindo interferências do ambiente e valorizando músicas, vídeos e chamadas. Como modelo não monaural, entrega uma proposta funcional para quem busca mobilidade e praticidade em um único acessório.",
     "imagem": "produtos/004_fone-de-ouvido-sem-fio-gold-fn-bt43-branco-1-par_imagem_1.webp"
+  },
+  {
+    "id": "005_cabo-usb-a-micro-usb-linha-start",
+    "titulo": "CABO USB-A/MICRO-USB LINHA START",
+    "valor": "19.99",
+    "entrega": "Normal",
+    "link": "https://www.mercadolivre.com.br/cabo-usb-amicro-usb-linha-start/p/MLB76124010/?attributes=",
+    "garantia": "12",
+    "estoque": "15",
+    "descricao": "",
+    "imagem": "produtos/005_cabo-usb-a-micro-usb-linha-start_imagem_1.webp"
   }
 ]
