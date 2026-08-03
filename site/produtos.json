@@ -1,13 +1,13 @@
 [
   {
-    "id": "001_meu-produto-e-um-fone-de-ouvido-jbl-de-299-99-reai",
-    "titulo": "Meu Produto É Um Fone De Ouvido Jbl De 299,99 Reais Com 1 An",
-    "valor": "97.90",
-    "entrega": "Normal",
+    "id": "001_caixa-de-som",
+    "titulo": "caixa de som",
+    "valor": "199.90",
+    "entrega": "Full",
     "link": "https://www.mercadolivre.com.br/a-gold-microfone-de-lapela-mcf-38a-reducao-de-ruido-de-ia-preto/p/MLB67445615?pdp_filters=item_id:MLB7308188520",
-    "garantia": "12 meses",
-    "estoque": "27",
+    "garantia": "1 ano",
+    "estoque": "3",
     "descricao": "",
-    "imagem": "produtos/001_meu-produto-e-um-fone-de-ouvido-jbl-de-299-99-reai_imagem_1.webp"
+    "imagem": "produtos/001_caixa-de-som_imagem_1.webp"
   }
 ]
