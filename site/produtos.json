@@ -31,5 +31,16 @@
     "estoque": "4",
     "descricao": "",
     "imagem": "produtos/003_alto-falante-jbl-xtreme-3-portatil-com-bluetooth-w_imagem_1.webp"
+  },
+  {
+    "id": "004_fone-de-ouvido-sem-fio-gold-fn-bt43-branco-1-par",
+    "titulo": "Fone De Ouvido Sem Fio Gold Fn-bt43 Branco 1 Par",
+    "valor": "139.99",
+    "entrega": "Normal",
+    "link": "https://produto.mercadolivre.com.br/MLB-4976274047-fone-de-ouvido-sem-fio-gold-fn-bt43-branco-1-par-_JM",
+    "garantia": "1 mes",
+    "estoque": "3",
+    "descricao": "Fone de Ouvido Sem Fio Gold FN-BT43 Branco reúne praticidade e estilo em um formato in-ear pensado para o uso diário. A conexão Bluetooth e a tecnologia TWS favorecem uma escuta estável, sem cabos, enquanto o microfone integrado e o modo mãos livres facilitam chamadas e comandos com mais agilidade. O acabamento branco com detalhes em cinza oferece um visual discreto e moderno.\n\n\n\nO estojo de carregamento ajuda a manter o fone protegido e pronto para acompanhar a rotina, seja em casa, no trabalho ou nos deslocamentos. O cancelamento de ruído contribui para uma audição mais imersiva, reduzindo interferências do ambiente e valorizando músicas, vídeos e chamadas. Como modelo não monaural, entrega uma proposta funcional para quem busca mobilidade e praticidade em um único acessório.",
+    "imagem": "produtos/004_fone-de-ouvido-sem-fio-gold-fn-bt43-branco-1-par_imagem_1.webp"
   }
 ]
