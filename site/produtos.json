@@ -1,24 +1,13 @@
 [
   {
-    "id": "001_kit-ferramentas-120pcs",
-    "titulo": "Kit Ferramentas 120 Peças com Maleta Profissional",
-    "valor": "189.90",
-    "entrega": "Full",
-    "link": "https://mercadolivre.com.br/seu-link-afiliado",
-    "garantia": "12 meses",
-    "estoque": "23",
-    "descricao": "Kit completo profissional com catraca, soquetes e chaves",
-    "imagem": ""
-  },
-  {
-    "id": "002_smartwatch-x8-ultra",
-    "titulo": "Smartwatch X8 Ultra 49mm Tela AMOLED",
+    "id": "001_meu-produto-e-um-fone-de-ouvido-jbl-de-299-99-reai",
+    "titulo": "Meu Produto É Um Fone De Ouvido Jbl De 299,99 Reais Com 1 An",
     "valor": "97.90",
-    "entrega": "Full",
-    "link": "https://mercadolivre.com.br/seu-link",
-    "garantia": "6 meses",
-    "estoque": "8",
-    "descricao": "Smartwatch com ligações e pulseira extra",
-    "imagem": ""
+    "entrega": "Normal",
+    "link": "https://www.mercadolivre.com.br/a-gold-microfone-de-lapela-mcf-38a-reducao-de-ruido-de-ia-preto/p/MLB67445615?pdp_filters=item_id:MLB7308188520",
+    "garantia": "12 meses",
+    "estoque": "27",
+    "descricao": "",
+    "imagem": "produtos/001_meu-produto-e-um-fone-de-ouvido-jbl-de-299-99-reai_imagem_1.webp"
   }
 ]
