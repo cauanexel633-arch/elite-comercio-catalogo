@@ -1,0 +1,7 @@
+
+services:
+  - type: web
+    name: elite-comercio-catalogo
+    env: static
+    staticPublishPath: ./site
+    buildCommand: python scripts/gerar_catalogo.py
