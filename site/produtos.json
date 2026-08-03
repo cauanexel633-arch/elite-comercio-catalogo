@@ -9,5 +9,16 @@
     "estoque": "1",
     "descricao": "",
     "imagem": "produtos/001_a-gold-microfone-de-lapela-mcf-38a-reducao-de-ruid_imagem_1.webp"
+  },
+  {
+    "id": "002_start-ac-102x-turbo-25w-usb-a-c-branco",
+    "titulo": "Start Ac-102x Turbo 25w Usb-a/c Branco",
+    "valor": "24.99",
+    "entrega": "Normal",
+    "link": "https://produto.mercadolivre.com.br/MLB-4976108899-start-ac-102x-turbo-25w-usb-ac-branco-_JM",
+    "garantia": "15 dias",
+    "estoque": "4",
+    "descricao": "",
+    "imagem": "produtos/002_start-ac-102x-turbo-25w-usb-a-c-branco_imagem_1.webp"
   }
 ]
