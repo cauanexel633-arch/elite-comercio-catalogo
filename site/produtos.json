@@ -53,5 +53,16 @@
     "estoque": "15",
     "descricao": "",
     "imagem": "produtos/005_cabo-usb-a-micro-usb-linha-start_imagem_1.webp"
+  },
+  {
+    "id": "006_caixa-de-som-ltomex-rgb-50w-wi-fi-al-8396",
+    "titulo": "Caixa De Som Ltomex Rgb 50w Wi-fi Al-8396",
+    "valor": "149.99",
+    "entrega": "Normal",
+    "link": "https://produto.mercadolivre.com.br/MLB-7304682222-caixa-de-som-ltomex-rgb-50w-wi-fi-al-8396-_JM",
+    "garantia": "1 mes",
+    "estoque": "5",
+    "descricao": "",
+    "imagem": "produtos/006_caixa-de-som-ltomex-rgb-50w-wi-fi-al-8396_imagem_1.webp"
   }
 ]
