@@ -16,7 +16,6 @@ def ler_produto(pasta):
     def read_txt(nome, default=""):
         f = pasta / f"{nome}.txt"
         return f.read_text(encoding="utf-8").strip() if f.exists() else default
-    # pega primeira imagem
     imgs = list(pasta.glob("imagem*.*")) + list(pasta.glob("*.jpg")) + list(pasta.glob("*.png"))
     img_name = ""
     if imgs:
@@ -36,6 +35,21 @@ def ler_produto(pasta):
         "imagem": img_name
     }
 
+def limpar_imagens_orfas(produtos_validos):
+    if not SITE_IMG_DIR.exists():
+        return
+    nomes_validos = {p["id"] for p in produtos_validos}
+    for img in SITE_IMG_DIR.iterdir():
+        if img.is_file():
+            # se a imagem não pertence a nenhum produto válido, apaga
+            pertence = any(img.name.startswith(f"{pid}_") for pid in nomes_validos)
+            if not pertence:
+                try:
+                    img.unlink()
+                    print(f"Removida órfã: {img.name}")
+                except:
+                    pass
+
 def main():
     produtos = []
     if not PRODUTOS_DIR.exists():
@@ -47,6 +61,7 @@ def main():
             except Exception as e:
                 print(f"Erro em {pasta}: {e}")
     SITE_DIR.mkdir(exist_ok=True)
+    limpar_imagens_orfas(produtos)
     SITE_PRODUTOS_JSON.write_text(json.dumps(produtos, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"Gerado {len(produtos)} produtos em {SITE_PRODUTOS_JSON}")
 
