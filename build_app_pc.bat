@@ -1,90 +1,89 @@
-
 @echo off
-chcp 65001 >nul
 echo ==========================================
-echo  ELITE COMERCIO - APP PC DE VERDADE
-echo  Com icone do selo anexado
-echo  NAO abre navegador! Janela propria!
+echo  ELITE COMERCIO - APP PC - FIX QT
+echo  Corrigindo conflito PyQt5 vs PyQt6
 echo ==========================================
+echo.
+
+echo Limpando PyQt5 para evitar conflito...
+pip uninstall PyQt5 PyQt5-sip PyQt5-Qt5 -y 2>nul
+
 echo.
 echo Verificando arquivos...
 if not exist app.py (
-    echo ERRO: app.py nao encontrado!
+    echo ERRO: app.py nao encontrado
     pause
     exit /b
 )
 if not exist elite_icon.ico (
-    echo ERRO: elite_icon.ico nao encontrado!
-    echo Coloque o icone do selo na pasta!
+    echo ERRO: elite_icon.ico nao encontrado
     pause
     exit /b
 )
 if not exist elite_app.py (
-    echo ERRO: elite_app.py nao encontrado!
+    echo ERRO: elite_app.py nao encontrado
     pause
     exit /b
 )
 
-echo [OK] app.py encontrado
-echo [OK] elite_icon.ico encontrado (selo Elite)
-echo [OK] elite_app.py encontrado
-
+echo [OK] app.py
+echo [OK] elite_icon.ico
+echo [OK] elite_app.py
 echo.
-echo Instalando dependencias do APP NATIVO...
-pip install pyinstaller flask python-dotenv google-genai pillow requests --upgrade --quiet
 
-echo Instalando PyQt6 para janela nativa...
-pip install PyQt6 PyQtWebEngine --quiet
-
-echo Instalando pywebview (fallback)...
-pip install pywebview --quiet
+echo Instalando apenas PyQt6...
+pip install PyQt6 PyQtWebEngine --quiet --upgrade
 
 echo.
 echo Limpando builds antigos...
 rmdir /s /q build 2>nul
 rmdir /s /q dist 2>nul
 del /q *.spec 2>nul
+del /q EliteComercio.spec 2>nul
 
 echo.
-echo ==========================================
-echo  Criando EXE APP NATIVO...
-echo  Com icone do selo anexado
-echo  Sem console, janela propria
-echo ==========================================
+echo Criando EXE com fix para Qt...
+echo Isso pode demorar 3-5 minutos...
 echo.
 
-pyinstaller --noconfirm --onefile --windowed --icon=elite_icon.ico --name="EliteComercio" --add-data="produtos;produtos" --add-data="site;site" --add-data="scripts;scripts" --add-data="logo.jpg;." --hidden-import=google.genai --hidden-import=google.genai.types --hidden-import=PIL --hidden-import=flask --hidden-import=dotenv --hidden-import=PyQt6 --hidden-import=PyQt6.QtWebEngineWidgets --hidden-import=webview elite_app.py
+REM Usa --exclude para remover PyQt5 que causa conflito
+pyinstaller --noconfirm --onefile --windowed --icon=elite_icon.ico --name=EliteComercio --add-data=produtos;produtos --add-data=site;site --exclude-module PyQt5 --exclude-module PyQt5.QtCore --exclude-module PyQt5.QtGui --exclude-module PyQt5.QtWidgets --exclude-module PyQt5.sip --exclude-module PySide2 --exclude-module PySide6 --exclude-module PyQt5-Qt5 --hidden-import=google.genai --hidden-import=flask --hidden-import=PyQt6 --hidden-import=PyQt6.QtCore --hidden-import=PyQt6.QtGui --hidden-import=PyQt6.QtWidgets --hidden-import=PyQt6.QtWebEngineWidgets elite_app.py
 
 echo.
 echo ==========================================
 if exist dist\EliteComercio.exe (
-    echo  ✅ APP NATIVO CRIADO COM SUCESSO!
+    echo  EXE CRIADO COM SUCESSO
     echo ==========================================
     echo.
     echo  Arquivo: dist\EliteComercio.exe
-    echo  Tamanho:
-    dir dist\EliteComercio.exe | find "EliteComercio"
+    dir dist\EliteComercio.exe
     echo.
-    echo  Tipo: Aplicativo para PC de verdade!
-    echo  Janela: Propria, NAO abre Chrome/navegador
-    echo  Icone: Selo Elite Comércio anexado!
-    echo  Barra tarefas: Icone do selo
-    echo  Console: NAO aparece (windowed)
-    echo  Auto Sync: SIM
-    echo  Liquid: SIM azul e amarelo com bolhas
+    echo  Tipo: App PC com icone do selo
+    echo  Janela: Propria
     echo.
     echo  COMO USAR:
-    echo  1. Va em dist\
-    echo  2. Copie EliteComercio.exe para Desktop
-    echo  3. Duplo clique
-    echo  4. Abre JANELA DO APP, nao navegador!
-    echo  5. Pode fixar na barra de tarefas
+    echo  1. Copie para Desktop
+    echo  2. Duplo clique
+    echo  3. Abre janela do app
     echo.
 ) else (
-    echo  ❌ ERRO ao criar EXE
-    echo  Verifique os logs acima
+    echo  ERRO - Tentando metodo alternativo...
     echo.
+    echo  Criando com pywebview apenas...
+    pip uninstall PyQt6 PyQtWebEngine -y 2>nul
+    pip install pywebview --quiet
+    
+    rmdir /s /q build 2>nul
+    rmdir /s /q dist 2>nul
+    del /q *.spec 2>nul
+    
+    pyinstaller --noconfirm --onefile --windowed --icon=elite_icon.ico --name=EliteComercio --add-data=produtos;produtos --add-data=site;site --exclude-module PyQt5 --exclude-module PyQt6 --hidden-import=google.genai --hidden-import=flask --hidden-import=webview elite_app.py
+    
+    if exist dist\EliteComercio.exe (
+        echo EXE criado com pywebview!
+    ) else (
+        echo Falha nos dois metodos
+    )
 )
-
 echo ==========================================
 pause
