@@ -50,14 +50,12 @@ def listar_produtos():
     return lista
 
 def get_grok_key():
-    # Aceita vários nomes
     return os.getenv("GROK_API_KEY") or os.getenv("XAI_API_KEY") or os.getenv("XAI_APIKEY") or os.getenv("GROK_KEY") or ""
 
 def get_gemini_key():
     return os.getenv("GEMINI_API_KEY","").strip()
 
 def gerar_com_ia(prompt):
-    # Tenta Gemini primeiro
     gemini_key = get_gemini_key()
     if gemini_key and len(gemini_key)>20:
         try:
@@ -68,41 +66,33 @@ def gerar_com_ia(prompt):
             txt = resp.text.replace("```json","").replace("```","").strip()
             s=txt.find("{"); e=txt.rfind("}")+1
             if s!=-1: txt=txt[s:e]
-            print("✅ Gemini texto OK")
             return json.loads(txt)
         except Exception as e:
-            print(f"Gemini texto falhou: {e}")
+            print(f"Gemini falhou: {e}")
 
-    # Tenta Grok
     grok_key = get_grok_key()
     if grok_key and len(grok_key)>10:
         try:
             import requests
-            print(f"🤖 Tentando Grok texto com chave {grok_key[:10]}...")
             r = requests.post("https://api.x.ai/v1/chat/completions",
                 headers={"Authorization": f"Bearer {grok_key}", "Content-Type":"application/json"},
                 json={
-                    "model":"grok-2-latest",
-                    "messages":[{"role":"user","content":f"Gere JSON para catalogo afiliados: titulo, valor, entrega (Full/Normal), garantia, estoque, descricao para produto: {prompt}. Responda APENAS JSON puro sem markdown"}],
+                    "model":"grok-4.5",
+                    "messages":[{"role":"user","content":f"Gere JSON para catalogo: titulo, valor, entrega, garantia, estoque, descricao para produto: {prompt}. Só JSON"}],
                     "temperature":0.3
                 }, timeout=30)
-            print(f"Grok status: {r.status_code}")
             if r.status_code==200:
                 txt = r.json()["choices"][0]["message"]["content"]
                 txt = txt.replace("```json","").replace("```","").strip()
                 s=txt.find("{"); e=txt.rfind("}")+1
                 if s!=-1: txt=txt[s:e]
-                print(f"✅ Grok texto OK: {txt[:100]}")
                 return json.loads(txt)
-            else:
-                print(f"Grok erro texto: {r.text[:300]}")
         except Exception as e:
-            print(f"Grok texto exceção: {e}")
+            print(f"Grok texto erro: {e}")
 
     return {"titulo":prompt.title()[:80],"valor":"97.90","entrega":"Full","garantia":"12 meses","estoque":"27","descricao":prompt}
 
 def analisar_com_grok_vision(image_b64):
-    """Análise REAL com Grok Vision - funciona com sua chave GROK"""
     cores = {"titulo":"#22c55e","valor":"#eab308","entrega":"#3b82f6","garantia":"#a855f7","estoque":"#f97316","descricao":"#06b6d4"}
     grok_key = get_grok_key()
     
@@ -113,59 +103,29 @@ def analisar_com_grok_vision(image_b64):
     try:
         import requests
         
-        # Garante que é data URL
         if not image_b64.startswith("data:"):
             if "," in image_b64:
                 b64_data = image_b64.split(",")[1]
             else:
                 b64_data = image_b64
-            # Detecta tipo
             image_data_url = f"data:image/jpeg;base64,{b64_data}"
         else:
             image_data_url = image_b64
 
         prompt = """
-        Analise este PRINT REAL de produto do Mercado Livre Brasil.
-
-        IGNORE COMPLETAMENTE:
-        - Cabeçalho amarelo no topo com logo, busca, categorias, CEP
-        - Menu, carrinho, favoritos, propagandas
-        - FOQUE APENAS no produto principal no centro da tela
-
-        ONDE ESTÁ CADA CAMPO (leia o texto REAL que você vê):
-        - TITULO: Texto grande preto, 2-3 linhas, à direita da foto do produto ou acima. Ex: "Câmera IP Visão Noturna Wi-Fi Dome"
-        - VALOR: Texto MUITO GRANDE com R$ + número, negrito. Ex: "R$ 109,99" - está abaixo do título
-        - ENTREGA: Texto com "Chegará grátis", "FULL", "Envio", "Chegará entre 29 e 30ago", perto do preço, com ícone caminhão
-        - GARANTIA: "Compra Garantida", "Garantia", "Devolução grátis", com escudo
-        - ESTOQUE: "X disponíveis", "X unidades", "Últimas", perto do botão Comprar
-        - DESCRIÇÃO: Parágrafo longo, pode não aparecer no print
-
-        Retorne APENAS JSON válido:
-        {
-          "titulo": "Texto EXATO que leu na imagem",
-          "valor": "109.99",
-          "entrega": "Chegará grátis entre 29 e 30ago",
-          "garantia": "Compra Garantida 30 dias",
-          "estoque": "4 disponíveis",
-          "descricao": "",
-          "marcacoes": [
-            {"campo":"titulo","x":35,"y":32,"w":40,"h":8,"conf":0.95},
-            {"campo":"valor","x":35,"y":42,"w":25,"h":6,"conf":0.98}
-          ]
-        }
-
-        REGRAS PARA MARCAÇÕES x,y,w,h em % (0-100):
-        - x = distância da esquerda, y = do topo, w = largura, h = altura
-        - NUNCA y < 20% (topo é cabeçalho amarelo, proibido)
-        - TITULO y deve ser 25-45%, VALOR y 40-55%, ENTREGA/GARANTIA y 50-70%
-        - Caixas justas ao texto, não podem se sobrepor
-        - Se não vê o campo, não inclua na marcacoes
-        - Leia EXATAMENTE o texto da imagem, não invente
-        - Seja preciso
+        Analise PRINT REAL Mercado Livre. IGNORE cabeçalho amarelo topo (logo, busca, menu) - FOQUE no produto central.
+        ONDE ESTÁ CADA CAMPO (leia texto REAL):
+        - TITULO: Texto grande preto 2-3 linhas à direita da foto ou acima, nome do produto. Ex: "Câmera IP Visão Noturna Wi-Fi Dome"
+        - VALOR: Texto MUITO GRANDE com R$ + número negrito abaixo título. Ex: "R$ 109,99"
+        - ENTREGA: "Chegará grátis", "FULL", "Envio", "Chegará entre 29 e 30ago" perto preço
+        - GARANTIA: "Compra Garantida", "Garantia", "Devolução grátis" com escudo
+        - ESTOQUE: "X disponíveis", "X unidades" perto botão Comprar
+        Retorne JSON: {"titulo":"texto exato visto","valor":"109.99","entrega":"texto","garantia":"texto","estoque":"texto","descricao":"","marcacoes":[{"campo":"titulo","x":35,"y":32,"w":40,"h":8,"conf":0.95}]}
+        REGRAS x,y,w,h % 0-100: NUNCA y<20% (topo é menu), TITULO y 25-45%, VALOR y 40-55%, caixas justas sem sobrepor, se não vê campo não inclua, leia EXATO da imagem.
         """
 
-        # Modelos Grok Vision disponíveis - tenta em ordem
-        modelos_grok = ["grok-2-vision-latest", "grok-2-vision-1212", "grok-vision-beta", "grok-2-vision"]
+        # MODELOS CORRETOS 2026 - grok-4.5 é o atual com visão
+        modelos_grok = ["grok-4.5", "grok-4.5-latest", "grok-4", "grok-4-latest", "grok-3", "grok-3-latest", "grok-beta"]
 
         for modelo in modelos_grok:
             try:
@@ -193,15 +153,13 @@ def analisar_com_grok_vision(image_b64):
                 
                 print(f"Grok Vision {modelo} status: {r.status_code}")
                 if r.status_code != 200:
-                    print(f"Resposta erro: {r.text[:500]}")
-                    # Tenta próximo modelo
+                    print(f"Erro: {r.text[:600]}")
                     continue
                 
                 resp_json = r.json()
                 txt = resp_json["choices"][0]["message"]["content"]
-                print(f"📄 Grok resposta bruta: {txt[:600]}...")
+                print(f"📄 Grok {modelo} resposta: {txt[:600]}...")
                 
-                # Limpa JSON
                 txt = txt.replace("```json","").replace("```","").strip()
                 s = txt.find("{"); e = txt.rfind("}")+1
                 if s!=-1 and e!=-1:
@@ -209,10 +167,9 @@ def analisar_com_grok_vision(image_b64):
                 
                 data = json.loads(txt)
                 
-                # Valida marcações
                 validas = []
                 for m in data.get("marcacoes",[]):
-                    if m.get("y",0) < 18:  # ignora topo
+                    if m.get("y",0) < 18:
                         continue
                     if m.get("w",0) > 85 and m.get("h",0) > 18:
                         continue
@@ -230,18 +187,14 @@ def analisar_com_grok_vision(image_b64):
                 data["provedor"] = "GROK"
                 
                 if not validas:
-                    print("⚠️ Grok retornou 0 marcações, tenta próximo modelo")
+                    print(f"⚠️ {modelo} 0 marcações, tenta próximo")
                     continue
                 
-                print(f"✅ GROK SUCESSO com {modelo}: {len(validas)} elementos")
-                print(f"📝 Título: {data.get('titulo','')[:80]}")
-                print(f"💰 Valor: {data.get('valor','')}")
+                print(f"✅ GROK SUCESSO {modelo}: {len(validas)} elementos - Título: {data.get('titulo','')[:60]}")
                 return data
                 
             except Exception as e:
                 print(f"❌ Grok {modelo} falhou: {e}")
-                import traceback
-                traceback.print_exc()
                 continue
         
         return None
@@ -253,7 +206,6 @@ def analisar_com_grok_vision(image_b64):
         return None
 
 def analisar_com_gemini_vision(image_b64):
-    """Tenta Gemini Vision se tiver chave"""
     cores = {"titulo":"#22c55e","valor":"#eab308","entrega":"#3b82f6","garantia":"#a855f7","estoque":"#f97316","descricao":"#06b6d4"}
     gemini_key = get_gemini_key()
     if not gemini_key or len(gemini_key)<20:
@@ -265,7 +217,7 @@ def analisar_com_gemini_vision(image_b64):
         if "," in image_b64: image_b64=image_b64.split(",")[1]
         img = Image.open(io.BytesIO(base64.b64decode(image_b64)))
         if img.width>1920: img.thumbnail((1920,1920))
-        prompt = "Analise print Mercado Livre. Ignore cabeçalho amarelo topo. Extraia titulo,valor,entrega,garantia,estoque,descricao e bbox x,y,w,h em % (y>=20%). Retorne JSON: {titulo,valor,entrega,garantia,estoque,descricao,marcacoes:[{campo,x,y,w,h,conf}]} Só JSON"
+        prompt = "Analise print Mercado Livre. Ignore cabeçalho amarelo topo. Extraia titulo,valor,entrega,garantia,estoque,descricao e bbox x,y,w,h em % (y>=20%). JSON: {titulo,valor,entrega,garantia,estoque,descricao,marcacoes:[{campo,x,y,w,h,conf}]} Só JSON"
         for modelo in ["gemini-1.5-pro","gemini-1.5-flash"]:
             try:
                 model=genai.GenerativeModel(modelo)
@@ -276,49 +228,30 @@ def analisar_com_gemini_vision(image_b64):
                 data=json.loads(txt)
                 for m in data.get("marcacoes",[]): m["color"]=cores.get(m["campo"],"#22c55e")
                 data["modelo_usado"]=modelo; data["provedor"]="GEMINI"; data["usou_fallback"]=False
-                print(f"✅ Gemini Vision OK {modelo}")
                 return data
-            except Exception as e:
-                print(f"Gemini {modelo} fail {e}")
+            except:
                 continue
     except Exception as e:
-        print(f"Gemini geral erro {e}")
+        print(f"Gemini erro {e}")
     return None
 
 def analisar_print_real_ia(image_b64):
-    """Função principal que tenta GROK primeiro (já que usuário usa Grok), depois Gemini"""
-    print("🔍 Iniciando análise REAL da tela...")
-    
-    # 1. Tenta GROK primeiro (usuário disse que usa Grok)
+    print("🔍 Iniciando análise REAL...")
     resultado = analisar_com_grok_vision(image_b64)
     if resultado and resultado.get("marcacoes"):
-        print("✅ Usando resultado GROK")
         return resultado
-    
-    # 2. Tenta Gemini como backup
-    print("Grok não retornou, tentando Gemini...")
+    print("Grok falhou, tentando Gemini...")
     resultado = analisar_com_gemini_vision(image_b64)
     if resultado and resultado.get("marcacoes"):
-        print("✅ Usando resultado Gemini")
         return resultado
-    
-    # 3. Fallback explicativo (não produto falso)
-    print("❌ Nenhuma IA funcionou, retornando erro explicativo")
     grok_key = get_grok_key()
     gemini_key = get_gemini_key()
-    
     return {
         "erro": "SEM_IA",
-        "titulo": "⚠️ Configure GROK_API_KEY ou GEMINI_API_KEY",
-        "valor": "0",
-        "entrega": "Verifique .env",
-        "garantia": "",
-        "estoque": "",
-        "descricao": f"Grok: {'OK '+grok_key[:10]+'...' if grok_key else 'FALTA'} | Gemini: {'OK' if gemini_key else 'FALTA'} | Verifique terminal do inserir.bat para erros detalhados",
-        "marcacoes": [],
-        "usou_fallback": True,
-        "mensagem": "Configure GROK_API_KEY no .env - pegue em https://console.x.ai/",
-        "debug": f"Grok key: {bool(grok_key)} Gemini key: {bool(gemini_key)}"
+        "titulo": "⚠️ Configure GROK_API_KEY",
+        "valor": "0","entrega":"Verifique .env","garantia":"","estoque":"","descricao": f"Grok: {'OK' if grok_key else 'FALTA'} | Gemini: {'OK' if gemini_key else 'FALTA'}",
+        "marcacoes": [], "usou_fallback": True,
+        "mensagem": "Configure GROK_API_KEY em .env - https://console.x.ai/"
     }
 
 @app.route("/")
@@ -331,11 +264,9 @@ def home():
 <html>
 <head>
 <meta charset="utf-8">
-<title>Elite Comércio - GROK Vision Real</title>
+<title>Elite - GROK 4.5 Vision</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Montserrat:wght@800&display=swap" rel="stylesheet">
 <style>
-body{font-family:Inter} h1{font-family:Montserrat}
 .marker{position:absolute; border-width:3px; border-style:solid; border-radius:10px; background:rgba(0,0,0,0.10); animation:pulse 2s infinite; pointer-events:none;}
 .marker-label{position:absolute; bottom:-22px; left:0; color:black; font-size:11px; font-weight:900; padding:3px 8px; border-radius:6px; text-transform:uppercase;}
 .conf-badge{position:absolute; top:-10px; right:-10px; background:black; color:white; font-size:10px; padding:2px 6px; border-radius:12px; border:2px solid currentColor; font-weight:900;}
@@ -346,51 +277,24 @@ body{font-family:Inter} h1{font-family:Montserrat}
 <body class="bg-[#0a0a0a] text-white min-h-screen">
 <div class="max-w-[1400px] mx-auto p-6">
   <div class="flex items-center gap-4 mb-6">
-    <div><h1 class="text-3xl font-black text-yellow-400">ELITE COMÉRCIO</h1>
-      <p class="text-sm opacity-70">
-        GROK Vision: {{'✅ '+grok_key[:12]+'...' if tem_grok else '❌ Falta GROK_API_KEY'}} | 
-        Gemini: {{'✅ OK' if tem_gemini else '❌ Não configurado'}}
-      </p>
-    </div>
-    <div class="ml-auto flex gap-2">
-      <span class="px-3 py-1 bg-yellow-400 text-black rounded-full text-xs font-bold">{{produtos|length}} produtos</span>
-      <button type="button" onclick="syncGitHub()" class="px-4 py-2 bg-white text-black rounded-lg font-bold">🚀 Sync</button>
-    </div>
+    <div><h1 class="text-3xl font-black text-yellow-400">ELITE COMÉRCIO</h1><p class="text-sm opacity-70">GROK 4.5 Vision: {{'✅ '+grok_key[:12]+'...' if tem_grok else '❌ Falta'}} | Gemini: {{'✅' if tem_gemini else '❌'}}</p></div>
+    <div class="ml-auto"><span class="px-3 py-1 bg-yellow-400 text-black rounded-full text-xs font-bold">{{produtos|length}} produtos</span> <button type="button" onclick="syncGitHub()" class="px-4 py-2 bg-white text-black rounded-lg font-bold">🚀 Sync</button></div>
   </div>
-
   {% if not tem_grok and not tem_gemini %}
-  <div class="bg-red-500/20 border-2 border-red-500 rounded-xl p-4 mb-6">
-    <p class="font-black text-red-400">⚠️ Nenhuma chave IA encontrada!</p>
-    <p class="text-sm mt-1">Você disse que usa Grok, então crie .env com:</p>
-    <code class="block bg-black p-2 rounded mt-2 text-yellow-400">GROK_API_KEY=xai-...</code>
-    <p class="text-xs opacity-70 mt-2">Pegue em: https://console.x.ai/ → API Keys → Create</p>
-  </div>
-  {% elif tem_grok %}
-  <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-3 mb-6 flex items-center gap-3">
-    <span class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></span>
-    <p class="text-sm"><b class="text-green-400">GROK Vision Ativo</b> - IA vai analisar de verdade sua tela</p>
-  </div>
+  <div class="bg-red-500/20 border-2 border-red-500 rounded-xl p-4 mb-6"><p class="font-black text-red-400">⚠️ Sem chave!</p><code class="block bg-black p-2 rounded mt-2 text-yellow-400">GROK_API_KEY=xai-...</code><p class="text-xs opacity-70 mt-2">https://console.x.ai/ → API Keys</p></div>
   {% endif %}
-
   <div class="grid grid-cols-1 lg:grid-cols-[500px_1fr] gap-6">
     <div class="bg-[#151515] rounded-2xl p-6 border border-yellow-400/20 h-fit lg:sticky top-6">
       <h2 class="text-xl font-bold mb-4">✨ Adicionar com IA REAL</h2>
       <div class="mb-4 bg-black rounded-xl p-3 border-2 border-yellow-400/40">
-        <div class="flex items-center justify-between mb-2">
-          <label class="text-xs font-black text-yellow-400">🎯 IA REAL - {{'GROK' if tem_grok else 'GEMINI'}} VISION</label>
-          <button type="button" id="btnAbrirBarra" class="w-12 h-12 bg-gradient-to-br from-yellow-400 to-amber-500 text-black rounded-xl flex items-center justify-center text-2xl font-black shadow-lg hover:scale-105">🖥️</button>
-        </div>
-        <textarea id="promptIA" rows="2" placeholder="Ou descreva o produto..." class="w-full p-3 bg-[#0a0a0a] border border-white/10 rounded-xl text-sm outline-none focus:border-yellow-400"></textarea>
+        <div class="flex items-center justify-between mb-2"><label class="text-xs font-black text-yellow-400">🎯 GROK 4.5 VISION REAL</label><button type="button" id="btnAbrirBarra" class="w-12 h-12 bg-gradient-to-br from-yellow-400 to-amber-500 text-black rounded-xl flex items-center justify-center text-2xl font-black">🖥️</button></div>
+        <textarea id="promptIA" rows="2" placeholder="Ou descreva..." class="w-full p-3 bg-[#0a0a0a] border border-white/10 rounded-xl text-sm"></textarea>
         <button type="button" id="btnGerarIA" class="w-full mt-2 py-2.5 bg-white/10 border border-white/10 rounded-xl text-sm font-bold hover:bg-yellow-400 hover:text-black">GERAR COM TEXTO 🤖</button>
-        <p class="text-[10px] opacity-60 mt-2">✅ Agora usa sua chave GROK de verdade • Lê texto real da imagem</p>
       </div>
       <form id="formProd" class="space-y-3">
-        <input id="titulo" placeholder="Título" class="w-full p-3 bg-black border border-white/10 rounded-xl text-sm outline-none focus:border-yellow-400" required>
-        <div class="grid grid-cols-2 gap-2">
-          <input id="valor" placeholder="Valor" class="w-full p-3 bg-black border border-white/10 rounded-xl text-sm outline-none focus:border-yellow-400" required>
-          <select id="entrega" class="w-full p-3 bg-black border border-white/10 rounded-xl text-sm"><option>Full</option><option>Normal</option></select>
-        </div>
-        <input id="link" placeholder="Link afiliado" class="w-full p-3 bg-black border border-white/10 rounded-xl text-sm outline-none focus:border-yellow-400" required>
+        <input id="titulo" placeholder="Título" class="w-full p-3 bg-black border border-white/10 rounded-xl text-sm" required>
+        <div class="grid grid-cols-2 gap-2"><input id="valor" placeholder="Valor" class="w-full p-3 bg-black border border-white/10 rounded-xl text-sm" required><select id="entrega" class="w-full p-3 bg-black border border-white/10 rounded-xl text-sm"><option>Full</option><option>Normal</option></select></div>
+        <input id="link" placeholder="Link afiliado" class="w-full p-3 bg-black border border-white/10 rounded-xl text-sm" required>
         <div class="grid grid-cols-2 gap-2"><input id="garantia" placeholder="Garantia" class="w-full p-3 bg-black border border-white/10 rounded-xl text-sm"><input id="estoque" placeholder="Estoque" class="w-full p-3 bg-black border border-white/10 rounded-xl text-sm"></div>
         <textarea id="descricao" placeholder="Descrição" rows="2" class="w-full p-3 bg-black border border-white/10 rounded-xl text-sm"></textarea>
         <div><input type="file" id="imagem" accept="image/*" multiple class="w-full text-xs file:bg-yellow-400 file:text-black file:border-0 file:rounded-lg file:px-3 file:py-1.5 file:font-bold"><div id="preview" class="mt-2 grid grid-cols-3 gap-2"></div></div>
@@ -398,48 +302,26 @@ body{font-family:Inter} h1{font-family:Montserrat}
       </form>
       <p id="msg" class="mt-3 text-xs text-center min-h-[16px] opacity-70"></p>
     </div>
-
-    <div class="bg-[#111] rounded-2xl p-6">
-      <h2 class="font-bold mb-4">Produtos ({{produtos|length}})</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {% for p in produtos %}
-        <div class="bg-[#1a1a1a] rounded-xl p-4 border border-white/5"><div class="flex gap-3"><div class="w-20 h-20 bg-black rounded-lg flex items-center justify-center text-[10px] opacity-50">IMG</div><div class="flex-1 min-w-0"><span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-green-500 text-black">{{p.status}}</span><h3 class="font-bold text-sm mt-1 line-clamp-2">{{p.titulo}}</h3><p class="text-yellow-400 font-black text-sm">R$ {{p.valor}}</p></div></div><div class="flex gap-2 mt-3"><button type="button" data-id="{{p.id}}" class="btn-editar flex-1 py-2 bg-white/10 rounded-lg text-xs font-bold">✏️ Editar</button><button type="button" data-id="{{p.id}}" class="btn-excluir flex-1 py-2 bg-red-500/20 text-red-400 rounded-lg text-xs font-bold">🗑️ Excluir</button></div></div>
-        {% endfor %}
-      </div>
-    </div>
+    <div class="bg-[#111] rounded-2xl p-6"><h2 class="font-bold mb-4">Produtos ({{produtos|length}})</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4">{% for p in produtos %}<div class="bg-[#1a1a1a] rounded-xl p-4 border border-white/5"><div class="flex gap-3"><div class="w-20 h-20 bg-black rounded-lg flex items-center justify-center text-[10px] opacity-50">IMG</div><div class="flex-1 min-w-0"><span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-green-500 text-black">{{p.status}}</span><h3 class="font-bold text-sm mt-1 line-clamp-2">{{p.titulo}}</h3><p class="text-yellow-400 font-black text-sm">R$ {{p.valor}}</p></div></div><div class="flex gap-2 mt-3"><button type="button" data-id="{{p.id}}" class="btn-editar flex-1 py-2 bg-white/10 rounded-lg text-xs font-bold">✏️ Editar</button><button type="button" data-id="{{p.id}}" class="btn-excluir flex-1 py-2 bg-red-500/20 text-red-400 rounded-lg text-xs font-bold">🗑️ Excluir</button></div></div>{% endfor %}</div></div>
   </div>
 </div>
-
 <div id="floatingBar" class="hidden fixed bottom-5 right-5 w-[640px] max-w-[97vw] bg-[#161616] rounded-[20px] border-2 border-yellow-400/60 z-[9999] overflow-hidden max-h-[92vh] overflow-y-auto">
-  <div id="dragHeader" class="drag-handle sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-black border-b border-white/10">
-    <div class="flex items-center gap-2"><span class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></span><span class="font-black text-sm text-yellow-400">GROK VISION REAL</span><span class="text-[9px] px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded-full border border-purple-500/30">LÊ DE VERDADE</span></div>
-    <button type="button" id="btnFecharBarra" class="w-8 h-8 bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white rounded-full font-black">✕</button>
-  </div>
+  <div id="dragHeader" class="drag-handle sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-black border-b border-white/10"><div class="flex items-center gap-2"><span class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></span><span class="font-black text-sm text-yellow-400">GROK 4.5 VISION REAL</span><span class="text-[9px] px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded-full">CORRIGIDO</span></div><button type="button" id="btnFecharBarra" class="w-8 h-8 bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white rounded-full font-black">✕</button></div>
   <div class="p-4">
-    <div class="bg-purple-500/10 border border-purple-500/30 rounded-xl p-3 mb-3 text-[11px]">
-      <p class="font-bold text-purple-300">🧠 GROK Vision analisando de verdade:</p>
-      <p class="opacity-80 mt-1">• Ignora menu amarelo • Lê texto REAL da sua captura • Marca exatamente onde está • Não usa produto falso</p>
-    </div>
+    <div class="bg-purple-500/10 border border-purple-500/30 rounded-xl p-3 mb-3 text-[11px]"><p class="font-bold text-purple-300">🧠 GROK 4.5 Vision - Modelos corrigidos:</p><p class="opacity-80 mt-1">Agora usa grok-4.5, grok-4, grok-3 (modelos atuais 2026) - não mais grok-2-vision que foi aposentado</p></div>
     <div class="flex flex-wrap gap-2 mb-3 text-[10px]"><span class="flex items-center gap-1.5 px-2 py-1 bg-[#22c55e]/20 border border-[#22c55e]/30 rounded-full"><span class="w-2.5 h-2.5 rounded-full bg-[#22c55e]"></span>Título</span><span class="flex items-center gap-1.5 px-2 py-1 bg-[#eab308]/20 border border-[#eab308]/30 rounded-full"><span class="w-2.5 h-2.5 rounded-full bg-[#eab308]"></span>Valor</span><span class="flex items-center gap-1.5 px-2 py-1 bg-[#3b82f6]/20 border border-[#3b82f6]/30 rounded-full"><span class="w-2.5 h-2.5 rounded-full bg-[#3b82f6]"></span>Entrega</span><span class="flex items-center gap-1.5 px-2 py-1 bg-[#a855f7]/20 border border-[#a855f7]/30 rounded-full"><span class="w-2.5 h-2.5 rounded-full bg-[#a855f7]"></span>Garantia</span><span class="flex items-center gap-1.5 px-2 py-1 bg-[#f97316]/20 border border-[#f97316]/30 rounded-full"><span class="w-2.5 h-2.5 rounded-full bg-[#f97316]"></span>Estoque</span></div>
     <div id="captureArea" class="relative w-full h-[440px] bg-[#0a0a0a] rounded-xl border-2 border-dashed border-white/20 overflow-hidden flex flex-col items-center justify-center">
-      <div id="capturePlaceholder" class="text-center p-6">
-        <div class="text-6xl mb-3">👁️</div><p class="text-sm font-black">GROK VISION REAL</p><p class="text-[11px] opacity-60 mt-2 max-w-[340px]">Capture a tela do Mercado Livre<br>GROK vai ler o texto REAL<br><b>Não marca mais o menu amarelo</b></p>
-        <button type="button" id="btnCapturar" class="mt-5 px-10 py-3.5 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-black rounded-xl text-sm hover:scale-105 transition shadow-xl">📸 CAPTURAR COM GROK</button>
-        <p class="text-[10px] opacity-40 mt-3">Usa sua GROK_API_KEY do .env</p>
-      </div>
-      <img id="captureImg" class="hidden w-full h-full object-contain">
-      <div id="markersLayer" class="absolute inset-0 pointer-events-none"></div>
+      <div id="capturePlaceholder" class="text-center p-6"><div class="text-6xl mb-3">👁️</div><p class="text-sm font-black">GROK 4.5 VISION CORRIGIDO</p><p class="text-[11px] opacity-60 mt-2 max-w-[340px]">Modelos atualizados para 2026<br>grok-4.5 é o mais novo com visão</p><button type="button" id="btnCapturar" class="mt-5 px-10 py-3.5 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-black rounded-xl text-sm hover:scale-105 transition shadow-xl">📸 CAPTURAR COM GROK 4.5</button></div>
+      <img id="captureImg" class="hidden w-full h-full object-contain"><div id="markersLayer" class="absolute inset-0 pointer-events-none"></div>
     </div>
-    <div id="analiseStatus" class="hidden mt-3 p-4 bg-black rounded-xl border-2 border-purple-500/30"><p class="text-xs font-black flex items-center gap-2"><span class="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></span>🧠 GROK Vision lendo sua imagem (ignorando topo amarelo)...</p><div class="w-full h-2 bg-white/10 rounded-full mt-3 overflow-hidden"><div id="progressBar" class="h-full bg-gradient-to-r from-purple-500 to-indigo-500 transition-all duration-300" style="width:0%"></div></div><p class="text-[10px] opacity-60 mt-2">Modelo: <span id="modeloUsado">grok-2-vision-latest</span> • Análise real da sua tela</p></div>
+    <div id="analiseStatus" class="hidden mt-3 p-4 bg-black rounded-xl border-2 border-purple-500/30"><p class="text-xs font-black flex items-center gap-2"><span class="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></span>🧠 GROK 4.5 analisando (modelos corrigidos)...</p><div class="w-full h-2 bg-white/10 rounded-full mt-3 overflow-hidden"><div id="progressBar" class="h-full bg-gradient-to-r from-purple-500 to-indigo-500 transition-all" style="width:0%"></div></div><p class="text-[10px] opacity-60 mt-2">Modelo: <span id="modeloUsado">grok-4.5</span></p></div>
     <div id="resultadoIA" class="hidden mt-3 bg-black rounded-xl p-4 border border-white/10"></div>
     <div id="acoesBarra" class="hidden mt-4 flex gap-3"><button type="button" id="btnCancelarBarra" class="flex-1 py-3.5 bg-red-500/10 border-2 border-red-500/30 text-red-400 font-black rounded-xl">✕ CANCELAR</button><button type="button" id="btnConfirmarBarra" class="flex-1 py-3.5 bg-gradient-to-r from-green-500 to-emerald-500 text-black font-black rounded-xl">✓ USAR DADOS REAIS</button></div>
   </div>
 </div>
-
 <script>
 const $ = id => document.getElementById(id);
 let imagemCapturadaBase64=null, dadosDetectados=null;
-
 (function(){
   const bar=$('floatingBar'), handle=$('dragHeader');
   let drag=false,sx,sy,il,it;
@@ -456,7 +338,6 @@ let imagemCapturadaBase64=null, dadosDetectados=null;
   });
   document.addEventListener('mouseup',()=>drag=false);
 })();
-
 function abrirBarraFlutuante(){ $('floatingBar').classList.remove('hidden'); }
 function fecharBarraFlutuante(){
   $('floatingBar').classList.add('hidden');
@@ -493,9 +374,8 @@ async function analisarTela(){
     clearInterval(interval); $('progressBar').style.width='100%';
     setTimeout(()=>{
       $('analiseStatus').classList.add('hidden');
-      
       if(data.erro==='SEM_IA' || data.erro==='SEM_CHAVE'){
-        $('resultadoIA').innerHTML=`<div class="bg-red-500/20 border-2 border-red-500 rounded-xl p-4"><p class="font-black text-red-400">❌ ${data.mensagem||'Sem chave'}</p><p class="text-xs mt-2">${data.descricao||''}</p><code class="block bg-black p-2 rounded mt-3 text-yellow-400 text-xs">GROK_API_KEY=xai-...<br>ou<br>GEMINI_API_KEY=AIza...</code><p class="text-[11px] opacity-60 mt-2">Grok: https://console.x.ai/ • Gemini: https://aistudio.google.com/app/apikey</p></div>`;
+        $('resultadoIA').innerHTML=`<div class="bg-red-500/20 border-2 border-red-500 rounded-xl p-4"><p class="font-black text-red-400">❌ ${data.mensagem||'Sem chave'}</p><p class="text-xs mt-2">${data.descricao||''}</p></div>`;
         $('resultadoIA').classList.remove('hidden');
         return;
       }
@@ -504,34 +384,18 @@ async function analisarTela(){
         $('resultadoIA').classList.remove('hidden');
         return;
       }
-
       const layer=$('markersLayer'); layer.innerHTML='';
       (data.marcacoes||[]).forEach((m,i)=>{
         const el=document.createElement('div'); el.className='marker';
         el.style.left=m.x+'%'; el.style.top=m.y+'%'; el.style.width=m.w+'%'; el.style.height=m.h+'%';
         el.style.borderColor=m.color||'#22c55e'; el.style.background=(m.color||'#22c55e')+'18';
-        el.style.animationDelay=(i*0.08)+'s';
         const lb=document.createElement('div'); lb.className='marker-label'; lb.style.background=m.color||'#22c55e'; lb.textContent=m.campo;
         const cf=document.createElement('div'); cf.className='conf-badge'; cf.style.borderColor=m.color||'#22c55e'; cf.style.color=m.color||'#22c55e'; cf.textContent=Math.round((m.conf||0.9)*100)+'%';
         el.appendChild(lb); el.appendChild(cf); layer.appendChild(el);
       });
-
       const media = data.marcacoes && data.marcacoes.length ? Math.round(data.marcacoes.reduce((a,b)=>a+(b.conf||0.9),0)/data.marcacoes.length*100) : 85;
-      $('modeloUsado').textContent = data.modelo_usado || 'GROK Vision';
-      
-      $('resultadoIA').innerHTML=`
-        <div class="flex items-center justify-between mb-3"><span class="text-green-400 font-black text-xs">✅ ANÁLISE REAL GROK - ${media}% • ${data.modelo_usado||''}</span><span class="text-[10px] px-2.5 py-1 bg-green-500/20 text-green-400 rounded-full border border-green-500/30">${data.marcacoes?.length||0} elementos reais</span></div>
-        <div class="space-y-2 text-[12px]">
-          <div class="p-2.5 bg-[#22c55e]/10 border border-[#22c55e]/20 rounded-lg"><span class="text-[#22c55e] font-black">Título REAL:</span> ${data.titulo||''}</div>
-          <div class="grid grid-cols-2 gap-2">
-            <div class="p-2 bg-[#eab308]/10 border border-[#eab308]/20 rounded-lg"><span class="text-[#eab308] font-bold">Valor:</span> R$ ${data.valor||''}</div>
-            <div class="p-2 bg-[#3b82f6]/10 border border-[#3b82f6]/20 rounded-lg"><span class="text-[#3b82f6] font-bold">Entrega:</span> ${data.entrega||''}</div>
-            <div class="p-2 bg-[#a855f7]/10 border border-[#a855f7]/20 rounded-lg"><span class="text-[#a855f7] font-bold">Garantia:</span> ${data.garantia||''}</div>
-            <div class="p-2 bg-[#f97316]/10 border border-[#f97316]/20 rounded-lg"><span class="text-[#f97316] font-bold">Estoque:</span> ${data.estoque||''}</div>
-          </div>
-        </div>
-        <p class="text-[10px] text-green-400 mt-3">✅ Texto lido de verdade da sua captura, sem produto falso • Provedor: ${data.provedor||'GROK'}</p>
-      `;
+      $('modeloUsado').textContent = data.modelo_usado || 'GROK';
+      $('resultadoIA').innerHTML=`<div class="flex items-center justify-between mb-3"><span class="text-green-400 font-black text-xs">✅ GROK ${data.modelo_usado||''} - ${media}%</span><span class="text-[10px] px-2.5 py-1 bg-green-500/20 text-green-400 rounded-full border border-green-500/30">${data.marcacoes?.length||0} reais</span></div><div class="space-y-2 text-[12px]"><div class="p-2.5 bg-[#22c55e]/10 border border-[#22c55e]/20 rounded-lg"><span class="text-[#22c55e] font-black">Título REAL:</span> ${data.titulo||''}</div><div class="grid grid-cols-2 gap-2"><div class="p-2 bg-[#eab308]/10 border border-[#eab308]/20 rounded-lg"><span class="text-[#eab308] font-bold">Valor:</span> R$ ${data.valor||''}</div><div class="p-2 bg-[#3b82f6]/10 border border-[#3b82f6]/20 rounded-lg"><span class="text-[#3b82f6] font-bold">Entrega:</span> ${data.entrega||''}</div><div class="p-2 bg-[#a855f7]/10 border border-[#a855f7]/20 rounded-lg"><span class="text-[#a855f7] font-bold">Garantia:</span> ${data.garantia||''}</div><div class="p-2 bg-[#f97316]/10 border border-[#f97316]/20 rounded-lg"><span class="text-[#f97316] font-bold">Estoque:</span> ${data.estoque||''}</div></div></div>`;
       $('resultadoIA').classList.remove('hidden');
       $('acoesBarra').classList.remove('hidden');
     },600);
@@ -553,7 +417,6 @@ function confirmarCaptura(){
   $('msg').className='mt-3 text-xs text-center text-green-400 font-bold';
   fecharBarraFlutuante();
 }
-
 document.addEventListener('DOMContentLoaded', ()=>{
   $('btnAbrirBarra').addEventListener('click', abrirBarraFlutuante);
   $('btnFecharBarra').addEventListener('click', fecharBarraFlutuante);
@@ -563,7 +426,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   $('btnGerarIA').addEventListener('click', async ()=>{
     const prompt=$('promptIA').value.trim();
     if(!prompt){ alert('Digite algo'); return; }
-    $('msg').textContent='🤖 Gerando com '+( "{{'GROK' if tem_grok else 'IA'}}" )+'...';
+    $('msg').textContent='🤖 Gerando...';
     try{
       const res=await fetch('/api/gerar-ia',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
       const data=await res.json();
@@ -573,7 +436,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if(data.garantia) $('garantia').value=data.garantia;
       if(data.estoque) $('estoque').value=data.estoque;
       if(data.descricao) $('descricao').value=data.descricao;
-      $('msg').textContent='✨ Preenchido com IA real!';
+      $('msg').textContent='✨ Preenchido!';
       $('msg').className='mt-3 text-xs text-center text-green-400';
     }catch(e){ $('msg').textContent='❌ Erro: '+e.message; }
   });
@@ -713,9 +576,10 @@ def api_edit():
 if __name__=="__main__":
     PRODUTOS_DIR.mkdir(exist_ok=True); (SITE_DIR/"produtos").mkdir(exist_ok=True)
     print("="*60)
-    print("ELITE COMÉRCIO - GROK VISION REAL")
-    print(f"Grok: {'OK '+get_grok_key()[:12]+'...' if get_grok_key() else 'FALTA - crie .env com GROK_API_KEY=xai-...'}")
+    print("ELITE COMÉRCIO - GROK 4.5 VISION CORRIGIDO")
+    print(f"Grok: {'OK '+get_grok_key()[:12]+'...' if get_grok_key() else 'FALTA'}")
     print(f"Gemini: {'OK' if get_gemini_key() else 'Não configurado'}")
     print("Acesse: http://localhost:5000")
+    print("Modelos: grok-4.5, grok-4, grok-3 (atualizados 2026)")
     print("="*60)
     app.run(debug=True, port=5000)
